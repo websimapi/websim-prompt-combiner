@@ -100,20 +100,23 @@ button:disabled {
 
 .save-image-btn {
     margin-top: 10px;
-    background-color: #4CAF50;
-    color: white;
+    background-color: transparent;
     border: none;
-    padding: 10px 15px;
-    border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: transform 0.3s ease;
 }
 
 .save-image-btn:hover {
-    background-color: #45a049;
+    transform: scale(1.1);
+}
+
+.save-icon {
+    width: 30px;
+    height: 30px;
+    fill: #4CAF50;
 }
 
 .save-image-btn:disabled {
-    background-color: #cccccc;
+    opacity: 0.5;
     cursor: not-allowed;
 }

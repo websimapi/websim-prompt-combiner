@@ -1,6 +1,18 @@
 import { h, Component, render } from 'https://unpkg.com/preact@10.19.3/dist/preact.module.js';
 import { useState, useEffect, useRef } from 'https://unpkg.com/preact@10.19.3/hooks/dist/hooks.module.js';
 
+function SaveIcon() {
+  return h('svg', { 
+    className: 'save-icon', 
+    viewBox: "0 0 24 24", 
+    fill: "currentColor" 
+  }, 
+    h('path', { 
+      d: "M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" 
+    })
+  );
+}
+
 function App() {
   const [room] = useState(new WebsimSocket());
   const [promptInput, setPromptInput] = useState('');
@@ -62,10 +74,10 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Updated effect to handle image loading with more robust timeout logic
+  // Updated effect to handle image loading with improved timeout
   useEffect(() => {
     if (generatedImage && imageRef.current) {
-      // Reset states
+      // Reset image loaded state when a new image is set
       setImageLoaded(false);
       
       // Clear any existing timeout
@@ -73,19 +85,23 @@ function App() {
         clearTimeout(imageLoadTimeoutRef.current);
       }
 
-      // Set initial loading status
-      setImageGenerationStatus({
-        isLoading: true,
-        message: 'Creating image...',
-        type: 'loading'
-      });
-
+      // Set a 15-second timeout to wait for image load
+      imageLoadTimeoutRef.current = setTimeout(() => {
+        if (!imageLoaded) {
+          setImageGenerationStatus({
+            isLoading: false,
+            message: 'Image loading took too long. Please try again.',
+            type: 'error'
+          });
+        }
+      }, 15000);
+      
       const handleImageLoad = () => {
-        // Clear the timeout if image loads successfully
+        // Clear the timeout
         if (imageLoadTimeoutRef.current) {
           clearTimeout(imageLoadTimeoutRef.current);
         }
-        
+
         setImageLoaded(true);
         setImageGenerationStatus({
           isLoading: false,
@@ -104,7 +120,7 @@ function App() {
       };
 
       const handleImageError = () => {
-        // Clear any existing timeout
+        // Clear the timeout
         if (imageLoadTimeoutRef.current) {
           clearTimeout(imageLoadTimeoutRef.current);
         }
@@ -116,37 +132,16 @@ function App() {
         });
       };
 
-      // Set a longer timeout to account for slower image loads
-      imageLoadTimeoutRef.current = setTimeout(() => {
-        // If image is still not loaded after 15 seconds, consider it a potential success
-        if (!imageLoaded) {
-          setImageLoaded(true);
-          setImageGenerationStatus({
-            isLoading: false,
-            message: 'Image likely generated successfully!',
-            type: 'success'
-          });
-
-          // Clear status after 3 seconds
-          setTimeout(() => {
-            setImageGenerationStatus({
-              isLoading: false,
-              message: '',
-              type: ''
-            });
-          }, 3000);
-        }
-      }, 15000);
-
       const currentImage = imageRef.current;
       currentImage.addEventListener('load', handleImageLoad);
       currentImage.addEventListener('error', handleImageError);
 
-      // Cleanup listeners and timeout
+      // Cleanup listeners
       return () => {
         currentImage.removeEventListener('load', handleImageLoad);
         currentImage.removeEventListener('error', handleImageError);
         
+        // Clear timeout on cleanup
         if (imageLoadTimeoutRef.current) {
           clearTimeout(imageLoadTimeoutRef.current);
         }
@@ -383,8 +378,9 @@ function App() {
         }),
         imageLoaded && h('button', { 
           onClick: handleSaveImage,
-          className: 'save-image-btn'
-        }, 'Save Image to Desktop')
+          className: 'save-image-btn',
+          title: 'Save Image to Desktop'
+        }, h(SaveIcon))
       )
     )
   );
