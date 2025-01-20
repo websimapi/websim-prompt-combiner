@@ -253,4 +253,13 @@ function App() {
   );
 }
 
-render(h(App), document.getElementById('root'));
+// Ensure the DOM is fully loaded before rendering
+document.addEventListener('DOMContentLoaded', () => {
+  // Ensure the root element exists before rendering
+  const rootElement = document.getElementById('root');
+  if (rootElement) {
+    render(h(App), rootElement);
+  } else {
+    console.error('Root element not found');
+  }
+});
