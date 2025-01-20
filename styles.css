@@ -113,6 +113,7 @@ button:disabled {
     background-color: #45a049;
 }
 
-.save-image-btn:active {
-    background-color: #3d8b40;
+.save-image-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
 }

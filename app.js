@@ -217,32 +217,53 @@ function App() {
     }
   };
 
-  const saveImageToDesktop = () => {
-    if (generatedImage && imageRef.current) {
-      const canvas = document.createElement('canvas');
-      const img = imageRef.current;
+  const handleSaveImage = async () => {
+    if (!generatedImage) return;
+
+    try {
+      // Fetch the image blob
+      const response = await fetch(generatedImage.url);
+      const blob = await response.blob();
+
+      // Create a temporary anchor element to trigger download
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
       
-      // Set canvas size to match image
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      
-      // Draw image on canvas
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      
-      // Convert canvas to blob
-      canvas.toBlob((blob) => {
-        // Create download link
-        const link = document.createElement('a');
-        link.download = 'generated_image.png';
-        link.href = URL.createObjectURL(blob);
-        
-        // Trigger download
-        link.click();
-        
-        // Clean up
-        URL.revokeObjectURL(link.href);
-      }, 'image/png');
+      // Generate filename based on the prompt
+      const filename = `generated_image_${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+      link.download = filename;
+
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Free up memory
+      URL.revokeObjectURL(link.href);
+
+      // Optional: Show success message
+      setImageGenerationStatus({
+        isLoading: false,
+        message: 'Image saved successfully!',
+        type: 'success'
+      });
+
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        setImageGenerationStatus({
+          isLoading: false,
+          message: '',
+          type: ''
+        });
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error saving image:', error);
+      setImageGenerationStatus({
+        isLoading: false,
+        message: 'Failed to save image. Please try again.',
+        type: 'error'
+      });
     }
   };
 
@@ -311,9 +332,8 @@ function App() {
           ref: imageRef,
           style: { display: imageLoaded ? 'block' : 'none' }
         }),
-        // Add Save Image button when image is loaded
         imageLoaded && h('button', { 
-          onClick: saveImageToDesktop,
+          onClick: handleSaveImage,
           className: 'save-image-btn'
         }, 'Save Image to Desktop')
       )
