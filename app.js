@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'https://unpkg.com/es-react@16.13.1/index.js';
-import { render } from 'https://unpkg.com/es-react@16.13.1/dom.js';
+import { h, Component, render } from 'https://unpkg.com/preact@10.19.3/dist/preact.module.js';
+import { useState, useEffect } from 'https://unpkg.com/preact@10.19.3/hooks/dist/hooks.module.js';
 
 function App() {
   const [room] = useState(new WebsimSocket());
@@ -85,36 +85,32 @@ function App() {
   };
 
   return (
-    <div className="prompt-container">
-      <h1>Prompt Combiner</h1>
-      <input 
-        type="text" 
-        value={promptInput}
-        onChange={(e) => setPromptInput(e.target.value)}
-        placeholder="Enter a new prompt"
-      />
-      <button onClick={handleSavePrompt}>Save Prompt</button>
+    h('div', { className: "prompt-container" },
+      h('h1', null, 'Prompt Combiner'),
+      h('input', { 
+        type: "text", 
+        value: promptInput,
+        onInput: (e) => setPromptInput(e.target.value),
+        placeholder: "Enter a new prompt"
+      }),
+      h('button', { onClick: handleSavePrompt }, 'Save Prompt'),
       
-      <div className="prompt-list">
-        {savedPrompts.map(prompt => (
-          <div 
-            key={prompt.id} 
-            className={`prompt-item ${selectedPrompts.includes(prompt) ? 'selected' : ''}`}
-            onClick={() => togglePromptSelection(prompt)}
-          >
-            {prompt.text}
-          </div>
-        ))}
-      </div>
+      h('div', { className: "prompt-list" },
+        savedPrompts.map(prompt => 
+          h('div', { 
+            key: prompt.id, 
+            className: `prompt-item ${selectedPrompts.includes(prompt) ? 'selected' : ''}`,
+            onClick: () => togglePromptSelection(prompt)
+          }, prompt.text)
+        )
+      ),
       
-      <button 
-        onClick={combineAndGenerateImage}
-        disabled={selectedPrompts.length === 0}
-      >
-        Combine and Generate Image
-      </button>
-    </div>
+      h('button', { 
+        onClick: combineAndGenerateImage,
+        disabled: selectedPrompts.length === 0
+      }, 'Combine and Generate Image')
+    )
   );
 }
 
-render(<App />, document.getElementById('root'));
+render(h(App), document.getElementById('root'));
