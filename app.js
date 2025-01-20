@@ -22,7 +22,6 @@ function App() {
   const imageRef = useRef(null);
   const imageLoadTimeoutRef = useRef(null);
   
-  // New state for tracking different loading/status states
   const [saveStatus, setSaveStatus] = useState({
     isLoading: false,
     message: '',
@@ -42,7 +41,6 @@ function App() {
       try {
         setIsLoading(true);
         const existingPrompts = await room.collection('prompt').getList();
-        // Sort prompts by creation date, newest first
         const sortedPrompts = existingPrompts.sort((a, b) => 
           new Date(b.created_at) - new Date(a.created_at)
         );
@@ -59,10 +57,8 @@ function App() {
       }
     };
     
-    // Initial load
     loadPrompts();
 
-    // Subscribe to changes in prompts collection
     const unsubscribe = room.collection('prompt').subscribe((updatedPrompts) => {
       const sortedPrompts = updatedPrompts.sort((a, b) => 
         new Date(b.created_at) - new Date(a.created_at)
@@ -70,14 +66,13 @@ function App() {
       setSavedPrompts(sortedPrompts);
     });
 
-    // Cleanup subscription on component unmount
     return () => unsubscribe();
   }, []);
 
-  // Updated effect to handle image loading with improved timeout
+  // Improved image loading effect
   useEffect(() => {
     if (generatedImage && imageRef.current) {
-      // Reset image loaded state when a new image is set
+      // Reset loading states
       setImageLoaded(false);
       
       // Clear any existing timeout
@@ -85,18 +80,24 @@ function App() {
         clearTimeout(imageLoadTimeoutRef.current);
       }
 
-      // Set a 15-second timeout to wait for image load
+      // Detailed logging for debugging
+      console.log('Attempting to load image:', generatedImage.url);
+
+      // Longer timeout to handle slow image generation
       imageLoadTimeoutRef.current = setTimeout(() => {
+        console.warn('Image loading timeout reached');
         if (!imageLoaded) {
           setImageGenerationStatus({
             isLoading: false,
-            message: 'Image loading took too long. Please try again.',
+            message: 'Image generation is taking longer than expected. Please check your connection.',
             type: 'error'
           });
         }
-      }, 15000);
+      }, 30000); // Increased to 30 seconds
       
-      const handleImageLoad = () => {
+      const handleImageLoad = (event) => {
+        console.log('Image loaded successfully');
+        
         // Clear the timeout
         if (imageLoadTimeoutRef.current) {
           clearTimeout(imageLoadTimeoutRef.current);
@@ -119,7 +120,9 @@ function App() {
         }, 3000);
       };
 
-      const handleImageError = () => {
+      const handleImageError = (event) => {
+        console.error('Image loading failed', event);
+        
         // Clear the timeout
         if (imageLoadTimeoutRef.current) {
           clearTimeout(imageLoadTimeoutRef.current);
@@ -127,7 +130,7 @@ function App() {
 
         setImageGenerationStatus({
           isLoading: false,
-          message: 'Failed to load image. Please try again.',
+          message: 'Failed to load image. Please try again or check the URL.',
           type: 'error'
         });
       };
@@ -242,8 +245,9 @@ function App() {
         type: 'loading'
       });
 
-      // Generate image URL
+      // Generate image URL with additional logging
       const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(data.imagePrompt)}`;
+      console.log('Generated Image URL:', imageUrl);
       
       // Update state with new image
       setGeneratedImage({
@@ -374,7 +378,11 @@ function App() {
           alt: generatedImage.prompt,
           id: 'ai-image',
           ref: imageRef,
-          style: { display: imageLoaded ? 'block' : 'none' }
+          style: { 
+            display: imageLoaded ? 'block' : 'none',
+            maxWidth: '100%',
+            height: 'auto'
+          }
         }),
         imageLoaded && h('button', { 
           onClick: handleSaveImage,
@@ -388,7 +396,6 @@ function App() {
 
 // Ensure the DOM is fully loaded before rendering
 document.addEventListener('DOMContentLoaded', () => {
-  // Ensure the root element exists before rendering
   const rootElement = document.getElementById('root');
   if (rootElement) {
     render(h(App), rootElement);
