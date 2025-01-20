@@ -7,6 +7,18 @@ function App() {
   const [savedPrompts, setSavedPrompts] = useState([]);
   const [selectedPrompts, setSelectedPrompts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // New state for tracking different loading/status states
+  const [saveStatus, setSaveStatus] = useState({
+    isLoading: false,
+    message: '',
+    type: ''
+  });
+  const [imageGenerationStatus, setImageGenerationStatus] = useState({
+    isLoading: false,
+    message: '',
+    type: ''
+  });
 
   // Load saved prompts on component mount with error handling
   useEffect(() => {
@@ -21,6 +33,11 @@ function App() {
         setSavedPrompts(sortedPrompts);
       } catch (error) {
         console.error('Error loading prompts:', error);
+        setSaveStatus({
+          isLoading: false,
+          message: 'Failed to load prompts. Please try again.',
+          type: 'error'
+        });
       } finally {
         setIsLoading(false);
       }
@@ -44,13 +61,40 @@ function App() {
   const handleSavePrompt = async () => {
     if (promptInput.trim()) {
       try {
+        setSaveStatus({
+          isLoading: true,
+          message: 'Saving prompt...',
+          type: 'loading'
+        });
+
         const newPrompt = await room.collection('prompt').create({
           text: promptInput.trim()
         });
-        // No need to manually update savedPrompts due to subscription
+        
+        setSaveStatus({
+          isLoading: false,
+          message: 'Prompt saved successfully!',
+          type: 'success'
+        });
+        
         setPromptInput('');
+
+        // Clear status message after 3 seconds
+        setTimeout(() => {
+          setSaveStatus({
+            isLoading: false,
+            message: '',
+            type: ''
+          });
+        }, 3000);
+
       } catch (error) {
         console.error('Error saving prompt:', error);
+        setSaveStatus({
+          isLoading: false,
+          message: 'Failed to save prompt. Please try again.',
+          type: 'error'
+        });
       }
     }
   };
@@ -69,6 +113,13 @@ function App() {
     const combinedPrompt = selectedPrompts.map(p => p.text).join(' + ');
 
     try {
+      // Start loading state
+      setImageGenerationStatus({
+        isLoading: true,
+        message: 'Generating image prompt...',
+        type: 'loading'
+      });
+
       const response = await fetch('/api/ai_completion', {
         method: 'POST',
         headers: {
@@ -93,13 +144,20 @@ function App() {
 
       const data = await response.json();
       
+      // Update status for image generation
+      setImageGenerationStatus({
+        isLoading: true,
+        message: 'Creating image...',
+        type: 'loading'
+      });
+
       // Create and render image
       const imageElement = document.createElement('img');
       imageElement.id = `ai-image-${Date.now()}`;
       imageElement.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(data.imagePrompt)}`;
       imageElement.alt = data.imagePrompt;
       
-      // Clear previous images and append new image
+      // Clear previous images and status messages
       const existingImage = document.getElementById('ai-image');
       if (existingImage) {
         existingImage.remove();
@@ -108,21 +166,56 @@ function App() {
       imageElement.id = 'ai-image';
       document.body.appendChild(imageElement);
 
+      // Success status
+      setImageGenerationStatus({
+        isLoading: false,
+        message: 'Image generated successfully!',
+        type: 'success'
+      });
+
+      // Clear status after 3 seconds
+      setTimeout(() => {
+        setImageGenerationStatus({
+          isLoading: false,
+          message: '',
+          type: ''
+        });
+      }, 3000);
+
     } catch (error) {
       console.error('Error generating image:', error);
+      setImageGenerationStatus({
+        isLoading: false,
+        message: 'Failed to generate image. Please try again.',
+        type: 'error'
+      });
     }
   };
 
   return (
     h('div', { className: "prompt-container" },
       h('h1', null, 'Prompt Combiner'),
+      
+      // Status message for saving prompts
+      saveStatus.message && h('div', { 
+        className: `status-message ${saveStatus.type}`
+      }, 
+        saveStatus.isLoading 
+          ? h('div', { className: "loading-spinner" }) 
+          : null,
+        saveStatus.message
+      ),
+
       h('input', { 
         type: "text", 
         value: promptInput,
         onInput: (e) => setPromptInput(e.target.value),
         placeholder: "Enter a new prompt"
       }),
-      h('button', { onClick: handleSavePrompt }, 'Save Prompt'),
+      h('button', { 
+        onClick: handleSavePrompt,
+        disabled: saveStatus.isLoading
+      }, 'Save Prompt'),
       
       isLoading 
         ? h('div', null, 'Loading prompts...')
@@ -138,9 +231,19 @@ function App() {
               )
           ),
       
+      // Status message for image generation
+      imageGenerationStatus.message && h('div', { 
+        className: `status-message ${imageGenerationStatus.type}`
+      }, 
+        imageGenerationStatus.isLoading 
+          ? h('div', { className: "loading-spinner" }) 
+          : null,
+        imageGenerationStatus.message
+      ),
+
       h('button', { 
         onClick: combineAndGenerateImage,
-        disabled: selectedPrompts.length === 0
+        disabled: selectedPrompts.length === 0 || imageGenerationStatus.isLoading
       }, 'Combine and Generate Image')
     )
   );
