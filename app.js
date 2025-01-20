@@ -19,6 +19,7 @@ function App() {
     message: '',
     type: ''
   });
+  const [generatedImage, setGeneratedImage] = useState(null);
 
   // Load saved prompts on component mount with error handling
   useEffect(() => {
@@ -151,20 +152,14 @@ function App() {
         type: 'loading'
       });
 
-      // Create and render image
-      const imageElement = document.createElement('img');
-      imageElement.id = `ai-image-${Date.now()}`;
-      imageElement.src = `https://image.pollinations.ai/prompt/${encodeURIComponent(data.imagePrompt)}`;
-      imageElement.alt = data.imagePrompt;
+      // Generate image URL
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(data.imagePrompt)}`;
       
-      // Clear previous images and status messages
-      const existingImage = document.getElementById('ai-image');
-      if (existingImage) {
-        existingImage.remove();
-      }
-      
-      imageElement.id = 'ai-image';
-      document.body.appendChild(imageElement);
+      // Update state with new image
+      setGeneratedImage({
+        url: imageUrl,
+        prompt: data.imagePrompt
+      });
 
       // Success status
       setImageGenerationStatus({
@@ -244,7 +239,16 @@ function App() {
       h('button', { 
         onClick: combineAndGenerateImage,
         disabled: selectedPrompts.length === 0 || imageGenerationStatus.isLoading
-      }, 'Combine and Generate Image')
+      }, 'Combine and Generate Image'),
+
+      // Conditionally render the generated image
+      generatedImage && h('div', { className: "image-container" },
+        h('img', {
+          src: generatedImage.url,
+          alt: generatedImage.prompt,
+          id: 'ai-image'
+        })
+      )
     )
   );
 }
