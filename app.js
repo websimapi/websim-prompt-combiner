@@ -1,5 +1,5 @@
-import { h, Component, render } from 'https://unpkg.com/preact@10.19.3/dist/preact.module.js';
-import { useState, useEffect } from 'https://unpkg.com/preact@10.19.3/hooks/dist/hooks.module.js';
+import { h, Component, render } from 'preact';
+import { useState, useEffect } from 'preact/hooks';
 
 function App() {
   const [room] = useState(new WebsimSocket());
