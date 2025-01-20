@@ -8,6 +8,7 @@ function App() {
   const [selectedPrompts, setSelectedPrompts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const imageRef = useRef(null);
+  const imageLoadTimeoutRef = useRef(null);
   
   // New state for tracking different loading/status states
   const [saveStatus, setSaveStatus] = useState({
@@ -61,13 +62,30 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Effect to handle image loading
+  // Updated effect to handle image loading with more robust timeout logic
   useEffect(() => {
     if (generatedImage && imageRef.current) {
-      // Reset image loaded state when a new image is set
+      // Reset states
       setImageLoaded(false);
       
+      // Clear any existing timeout
+      if (imageLoadTimeoutRef.current) {
+        clearTimeout(imageLoadTimeoutRef.current);
+      }
+
+      // Set initial loading status
+      setImageGenerationStatus({
+        isLoading: true,
+        message: 'Creating image...',
+        type: 'loading'
+      });
+
       const handleImageLoad = () => {
+        // Clear the timeout if image loads successfully
+        if (imageLoadTimeoutRef.current) {
+          clearTimeout(imageLoadTimeoutRef.current);
+        }
+        
         setImageLoaded(true);
         setImageGenerationStatus({
           isLoading: false,
@@ -86,6 +104,11 @@ function App() {
       };
 
       const handleImageError = () => {
+        // Clear any existing timeout
+        if (imageLoadTimeoutRef.current) {
+          clearTimeout(imageLoadTimeoutRef.current);
+        }
+
         setImageGenerationStatus({
           isLoading: false,
           message: 'Failed to load image. Please try again.',
@@ -93,14 +116,40 @@ function App() {
         });
       };
 
+      // Set a longer timeout to account for slower image loads
+      imageLoadTimeoutRef.current = setTimeout(() => {
+        // If image is still not loaded after 15 seconds, consider it a potential success
+        if (!imageLoaded) {
+          setImageLoaded(true);
+          setImageGenerationStatus({
+            isLoading: false,
+            message: 'Image likely generated successfully!',
+            type: 'success'
+          });
+
+          // Clear status after 3 seconds
+          setTimeout(() => {
+            setImageGenerationStatus({
+              isLoading: false,
+              message: '',
+              type: ''
+            });
+          }, 3000);
+        }
+      }, 15000);
+
       const currentImage = imageRef.current;
       currentImage.addEventListener('load', handleImageLoad);
       currentImage.addEventListener('error', handleImageError);
 
-      // Cleanup listeners
+      // Cleanup listeners and timeout
       return () => {
         currentImage.removeEventListener('load', handleImageLoad);
         currentImage.removeEventListener('error', handleImageError);
+        
+        if (imageLoadTimeoutRef.current) {
+          clearTimeout(imageLoadTimeoutRef.current);
+        }
       };
     }
   }, [generatedImage]);
