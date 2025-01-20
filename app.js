@@ -1,28 +1,57 @@
-import { h, Component, render } from 'preact';
-import { useState, useEffect } from 'preact/hooks';
+import { h, Component, render } from 'https://unpkg.com/preact@10.19.3/dist/preact.module.js';
+import { useState, useEffect } from 'https://unpkg.com/preact@10.19.3/hooks/dist/hooks.module.js';
 
 function App() {
   const [room] = useState(new WebsimSocket());
   const [promptInput, setPromptInput] = useState('');
   const [savedPrompts, setSavedPrompts] = useState([]);
   const [selectedPrompts, setSelectedPrompts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load saved prompts on component mount
+  // Load saved prompts on component mount with error handling
   useEffect(() => {
     const loadPrompts = async () => {
-      const existingPrompts = await room.collection('prompt').getList();
-      setSavedPrompts(existingPrompts);
+      try {
+        setIsLoading(true);
+        const existingPrompts = await room.collection('prompt').getList();
+        // Sort prompts by creation date, newest first
+        const sortedPrompts = existingPrompts.sort((a, b) => 
+          new Date(b.created_at) - new Date(a.created_at)
+        );
+        setSavedPrompts(sortedPrompts);
+      } catch (error) {
+        console.error('Error loading prompts:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
+    
+    // Initial load
     loadPrompts();
+
+    // Subscribe to changes in prompts collection
+    const unsubscribe = room.collection('prompt').subscribe((updatedPrompts) => {
+      const sortedPrompts = updatedPrompts.sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+      setSavedPrompts(sortedPrompts);
+    });
+
+    // Cleanup subscription on component unmount
+    return () => unsubscribe();
   }, []);
 
   const handleSavePrompt = async () => {
     if (promptInput.trim()) {
-      const newPrompt = await room.collection('prompt').create({
-        text: promptInput.trim()
-      });
-      setSavedPrompts([newPrompt, ...savedPrompts]);
-      setPromptInput('');
+      try {
+        const newPrompt = await room.collection('prompt').create({
+          text: promptInput.trim()
+        });
+        // No need to manually update savedPrompts due to subscription
+        setPromptInput('');
+      } catch (error) {
+        console.error('Error saving prompt:', error);
+      }
     }
   };
 
@@ -95,15 +124,19 @@ function App() {
       }),
       h('button', { onClick: handleSavePrompt }, 'Save Prompt'),
       
-      h('div', { className: "prompt-list" },
-        savedPrompts.map(prompt => 
-          h('div', { 
-            key: prompt.id, 
-            className: `prompt-item ${selectedPrompts.includes(prompt) ? 'selected' : ''}`,
-            onClick: () => togglePromptSelection(prompt)
-          }, prompt.text)
-        )
-      ),
+      isLoading 
+        ? h('div', null, 'Loading prompts...')
+        : h('div', { className: "prompt-list" },
+            savedPrompts.length === 0 
+              ? h('div', null, 'No saved prompts yet.')
+              : savedPrompts.map(prompt => 
+                h('div', { 
+                  key: prompt.id, 
+                  className: `prompt-item ${selectedPrompts.includes(prompt) ? 'selected' : ''}`,
+                  onClick: () => togglePromptSelection(prompt)
+                }, prompt.text)
+              )
+          ),
       
       h('button', { 
         onClick: combineAndGenerateImage,
