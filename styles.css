@@ -97,3 +97,22 @@ button:disabled {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+.save-image-btn {
+    margin-top: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.save-image-btn:hover {
+    background-color: #45a049;
+}
+
+.save-image-btn:active {
+    background-color: #3d8b40;
+}

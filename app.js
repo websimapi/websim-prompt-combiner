@@ -217,6 +217,35 @@ function App() {
     }
   };
 
+  const saveImageToDesktop = () => {
+    if (generatedImage && imageRef.current) {
+      const canvas = document.createElement('canvas');
+      const img = imageRef.current;
+      
+      // Set canvas size to match image
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      
+      // Draw image on canvas
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      
+      // Convert canvas to blob
+      canvas.toBlob((blob) => {
+        // Create download link
+        const link = document.createElement('a');
+        link.download = 'generated_image.png';
+        link.href = URL.createObjectURL(blob);
+        
+        // Trigger download
+        link.click();
+        
+        // Clean up
+        URL.revokeObjectURL(link.href);
+      }, 'image/png');
+    }
+  };
+
   return (
     h('div', { className: "prompt-container" },
       h('h1', null, 'Prompt Combiner'),
@@ -271,7 +300,7 @@ function App() {
         disabled: selectedPrompts.length === 0 || imageGenerationStatus.isLoading
       }, 'Combine and Generate Image'),
 
-      // Conditionally render the generated image
+      // Conditionally render the generated image and save button
       generatedImage && h('div', { 
         className: `image-container ${!imageLoaded ? 'hidden' : ''}` 
       },
@@ -280,9 +309,13 @@ function App() {
           alt: generatedImage.prompt,
           id: 'ai-image',
           ref: imageRef,
-          // Only show when fully loaded
           style: { display: imageLoaded ? 'block' : 'none' }
-        })
+        }),
+        // Add Save Image button when image is loaded
+        imageLoaded && h('button', { 
+          onClick: saveImageToDesktop,
+          className: 'save-image-btn'
+        }, 'Save Image to Desktop')
       )
     )
   );
