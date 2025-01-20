@@ -1,5 +1,5 @@
 import { h, Component, render } from 'https://unpkg.com/preact@10.19.3/dist/preact.module.js';
-import { useState, useEffect } from 'https://unpkg.com/preact@10.19.3/hooks/dist/hooks.module.js';
+import { useState, useEffect, useRef } from 'https://unpkg.com/preact@10.19.3/hooks/dist/hooks.module.js';
 
 function App() {
   const [room] = useState(new WebsimSocket());
@@ -7,6 +7,7 @@ function App() {
   const [savedPrompts, setSavedPrompts] = useState([]);
   const [selectedPrompts, setSelectedPrompts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const imageRef = useRef(null);
   
   // New state for tracking different loading/status states
   const [saveStatus, setSaveStatus] = useState({
@@ -20,6 +21,7 @@ function App() {
     type: ''
   });
   const [generatedImage, setGeneratedImage] = useState(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   // Load saved prompts on component mount with error handling
   useEffect(() => {
@@ -58,6 +60,50 @@ function App() {
     // Cleanup subscription on component unmount
     return () => unsubscribe();
   }, []);
+
+  // Effect to handle image loading
+  useEffect(() => {
+    if (generatedImage && imageRef.current) {
+      // Reset image loaded state when a new image is set
+      setImageLoaded(false);
+      
+      const handleImageLoad = () => {
+        setImageLoaded(true);
+        setImageGenerationStatus({
+          isLoading: false,
+          message: 'Image generated successfully!',
+          type: 'success'
+        });
+
+        // Clear status after 3 seconds
+        setTimeout(() => {
+          setImageGenerationStatus({
+            isLoading: false,
+            message: '',
+            type: ''
+          });
+        }, 3000);
+      };
+
+      const handleImageError = () => {
+        setImageGenerationStatus({
+          isLoading: false,
+          message: 'Failed to load image. Please try again.',
+          type: 'error'
+        });
+      };
+
+      const currentImage = imageRef.current;
+      currentImage.addEventListener('load', handleImageLoad);
+      currentImage.addEventListener('error', handleImageError);
+
+      // Cleanup listeners
+      return () => {
+        currentImage.removeEventListener('load', handleImageLoad);
+        currentImage.removeEventListener('error', handleImageError);
+      };
+    }
+  }, [generatedImage]);
 
   const handleSavePrompt = async () => {
     if (promptInput.trim()) {
@@ -161,22 +207,6 @@ function App() {
         prompt: data.imagePrompt
       });
 
-      // Success status
-      setImageGenerationStatus({
-        isLoading: false,
-        message: 'Image generated successfully!',
-        type: 'success'
-      });
-
-      // Clear status after 3 seconds
-      setTimeout(() => {
-        setImageGenerationStatus({
-          isLoading: false,
-          message: '',
-          type: ''
-        });
-      }, 3000);
-
     } catch (error) {
       console.error('Error generating image:', error);
       setImageGenerationStatus({
@@ -242,11 +272,16 @@ function App() {
       }, 'Combine and Generate Image'),
 
       // Conditionally render the generated image
-      generatedImage && h('div', { className: "image-container" },
+      generatedImage && h('div', { 
+        className: `image-container ${!imageLoaded ? 'hidden' : ''}` 
+      },
         h('img', {
           src: generatedImage.url,
           alt: generatedImage.prompt,
-          id: 'ai-image'
+          id: 'ai-image',
+          ref: imageRef,
+          // Only show when fully loaded
+          style: { display: imageLoaded ? 'block' : 'none' }
         })
       )
     )

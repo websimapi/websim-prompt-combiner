@@ -49,6 +49,12 @@ button:disabled {
     text-align: center;
 }
 
+.image-container.hidden {
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+}
+
 #ai-image {
     max-width: 100%;
     border-radius: 8px;
