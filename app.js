@@ -20,7 +20,8 @@ function App() {
   const [selectedPrompts, setSelectedPrompts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const imageRef = useRef(null);
-  const imageLoadTimeoutRef = useRef(null);
+  const loadTimeoutRef = useRef(null);
+  const initialImageSrcRef = useRef(null);
   
   const [saveStatus, setSaveStatus] = useState({
     isLoading: false,
@@ -72,35 +73,40 @@ function App() {
   // Improved image loading effect
   useEffect(() => {
     if (generatedImage && imageRef.current) {
-      // Reset loading states
+      // Reset states
       setImageLoaded(false);
       
       // Clear any existing timeout
-      if (imageLoadTimeoutRef.current) {
-        clearTimeout(imageLoadTimeoutRef.current);
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
       }
 
-      // Detailed logging for debugging
-      console.log('Attempting to load image:', generatedImage.url);
+      // Store initial image src for comparison
+      initialImageSrcRef.current = imageRef.current.src;
 
-      // Longer timeout to handle slow image generation
-      imageLoadTimeoutRef.current = setTimeout(() => {
-        console.warn('Image loading timeout reached');
-        if (!imageLoaded) {
+      // Detailed logging for debugging
+      console.log('Initial image src:', initialImageSrcRef.current);
+      console.log('New image URL:', generatedImage.url);
+
+      // Set a timeout to check if image src has changed
+      loadTimeoutRef.current = setTimeout(() => {
+        // Check if the image source has changed
+        if (imageRef.current && imageRef.current.src === initialImageSrcRef.current) {
+          console.warn('Image source did not change after 15 seconds');
           setImageGenerationStatus({
             isLoading: false,
-            message: 'Image generation is taking longer than expected. Please check your connection.',
+            message: 'Image generation is taking longer than expected. Please try again.',
             type: 'error'
           });
         }
-      }, 30000); // Increased to 30 seconds
-      
+      }, 15000); // 15 seconds timeout
+
       const handleImageLoad = (event) => {
         console.log('Image loaded successfully');
         
         // Clear the timeout
-        if (imageLoadTimeoutRef.current) {
-          clearTimeout(imageLoadTimeoutRef.current);
+        if (loadTimeoutRef.current) {
+          clearTimeout(loadTimeoutRef.current);
         }
 
         setImageLoaded(true);
@@ -124,13 +130,13 @@ function App() {
         console.error('Image loading failed', event);
         
         // Clear the timeout
-        if (imageLoadTimeoutRef.current) {
-          clearTimeout(imageLoadTimeoutRef.current);
+        if (loadTimeoutRef.current) {
+          clearTimeout(loadTimeoutRef.current);
         }
 
         setImageGenerationStatus({
           isLoading: false,
-          message: 'Failed to load image. Please try again or check the URL.',
+          message: 'Failed to load image. Please try again.',
           type: 'error'
         });
       };
@@ -145,8 +151,8 @@ function App() {
         currentImage.removeEventListener('error', handleImageError);
         
         // Clear timeout on cleanup
-        if (imageLoadTimeoutRef.current) {
-          clearTimeout(imageLoadTimeoutRef.current);
+        if (loadTimeoutRef.current) {
+          clearTimeout(loadTimeoutRef.current);
         }
       };
     }
