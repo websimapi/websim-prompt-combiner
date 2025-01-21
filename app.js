@@ -319,7 +319,20 @@ function App() {
     h('div', { className: "prompt-container" },
       h('h1', null, 'Prompt Combiner'),
       
-      // Status message for saving prompts
+      h('div', { className: "input-group" },
+        h('input', { 
+          type: "text", 
+          value: promptInput,
+          onInput: (e) => setPromptInput(e.target.value),
+          placeholder: "Enter a new prompt"
+        }),
+        h('button', { 
+          onClick: handleSavePrompt,
+          disabled: saveStatus.isLoading
+        }, 'Save Prompt')
+      ),
+      
+      // Status messages are now fixed at the top of the screen
       saveStatus.message && h('div', { 
         className: `status-message ${saveStatus.type}`
       }, 
@@ -329,17 +342,6 @@ function App() {
         saveStatus.message
       ),
 
-      h('input', { 
-        type: "text", 
-        value: promptInput,
-        onInput: (e) => setPromptInput(e.target.value),
-        placeholder: "Enter a new prompt"
-      }),
-      h('button', { 
-        onClick: handleSavePrompt,
-        disabled: saveStatus.isLoading
-      }, 'Save Prompt'),
-      
       isLoading 
         ? h('div', null, 'Loading prompts...')
         : h('div', { className: "prompt-list" },
@@ -354,7 +356,7 @@ function App() {
               )
           ),
       
-      // Status message for image generation
+      // Image generation status message
       imageGenerationStatus.message && h('div', { 
         className: `status-message ${imageGenerationStatus.type}`
       }, 
@@ -369,7 +371,7 @@ function App() {
         disabled: selectedPrompts.length === 0 || imageGenerationStatus.isLoading
       }, 'Combine and Generate Image'),
 
-      // Conditionally render the generated image and save button
+      // Image container with improved styling
       generatedImage && h('div', { 
         className: `image-container ${!imageLoaded ? 'hidden' : ''}` 
       },
